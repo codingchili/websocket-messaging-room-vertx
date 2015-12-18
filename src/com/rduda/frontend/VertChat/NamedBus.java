@@ -3,7 +3,7 @@ package com.rduda.frontend.VertChat;
 /**
  * Created by Robin on 2015-12-16.
  * <p>
- * Mapping the bus configurations to constants.
+ * Mapping the bus channels to constants.
  */
 class NamedBus {
     public static String NOTIFY() {

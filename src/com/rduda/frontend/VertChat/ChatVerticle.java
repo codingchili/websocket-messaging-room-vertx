@@ -15,10 +15,9 @@ import java.util.Map;
  * <p>
  * Handles messages from the client and passes them to the EventHandler.
  */
-public class ChatVerticle implements Verticle {
+class ChatVerticle implements Verticle {
     public final static String DEFAULT_ROOM = "SYSTEM";
     public final static String PUBLIC_ROOM = "General";
-    public final static Integer LISTEN_PORT = 4042;
     private final static String SERVER_NAME = "VERT.X";
     private final static String DEFAULT_TOPIC = "Authentication Required";
     private Map<String, MessageHandler> messageHandler = new HashMap<>();
@@ -38,6 +37,7 @@ public class ChatVerticle implements Verticle {
     public void init(Vertx vertx, Context context) {
         this.vertx = vertx;
 
+        // Bind action names to methods, using an enum.
         messageHandler.put("message", MessageHandler.message);
         messageHandler.put("authenticate", MessageHandler.authenticate);
         messageHandler.put("join", MessageHandler.join);
@@ -71,7 +71,15 @@ public class ChatVerticle implements Verticle {
         });
     }
 
-
+    /**
+     * Triggers the event chain for joining a room,
+     * the room is cached locally: the client is moved to the room and the room is notified.
+     * the room does not exist in this context: the server is queried for the room
+     * and returns the existing, or creates a new. This method is used as a callback for completion.
+     *
+     * @param client the client joining the room.
+     * @param name   the name of the room to join.
+     */
     protected void joinRoom(ClientID client, String name) {
         if (rooms.containsKey(name)) {
             sendMessage(client, "Room owner \'" + rooms.get(name).getOwner() + "\'.");
@@ -85,11 +93,22 @@ public class ChatVerticle implements Verticle {
         }
     }
 
+    /**
+     * Pushes a message onto the event bus for the given address.
+     *
+     * @param address of the bus.
+     * @param data    as an object that is Serializable to JSON.
+     */
     protected void sendBus(String address, Object data) {
         vertx.eventBus().send(address, Serializer.pack(data));
     }
 
-
+    /**
+     * Notify the clients within a room that a new client has joined the room.
+     *
+     * @param room   the name of the room that was joined.
+     * @param client joinee.
+     */
     protected void notifyRoomLoaded(String room, ClientID client) {
         Message message = new Message()
                 .setContent(client.getUsername() + " has joined the room.");
@@ -98,15 +117,18 @@ public class ChatVerticle implements Verticle {
         sendBus(NamedBus.NOTIFY(), new UserEvent(room, client.getUsername(), true));
     }
 
+    /**
+     * Sets up a WebSocket server that handles incoming messages based on their header.action
+     */
     private void startServer() {
         server = vertx.createHttpServer().websocketHandler(socket -> {
             final ClientID client = new ClientID(socket.textHandlerID());
             client.setUsername(socket.textHandlerID());
 
             socket.handler(event -> {
-                System.out.println("from client: " + event.toString());
                 Packet packet = (Packet) (Serializer.unpack(event.toString(), Packet.class));
 
+                // All packets except authenticate requires authentication.
                 if (!packet.getHeader().getAction().equals("authenticate") && !client.isAuthenticated())
                     notAuthenticated(client);
                 else
@@ -115,13 +137,14 @@ public class ChatVerticle implements Verticle {
                     );
             });
 
+            // Whenever a client disconnects for any reason, it must be removed from the joined room.
             socket.closeHandler(event -> {
                 removeFromRoom(client.getRoom(), client);
                 removeClient(client);
             });
 
             onClientConnect(client);
-        }).listen(LISTEN_PORT, "localhost");
+        }).listen(ChatServer.LISTEN_PORT, "localhost");
     }
 
     private void onClientConnect(ClientID client) {
@@ -166,17 +189,20 @@ public class ChatVerticle implements Verticle {
     }
 
     private void removeFromRoom(String room, ClientID client) {
-        rooms.get(room).remove(client);
-        client.setRoom(null);
+        if (rooms.get(room) != null) {
+            rooms.get(room).remove(client);
 
-        notifyRoomEvent(room, new Message()
-                .setContent(client.getUsername() + " has left the room."));
+            client.setRoom(null);
 
-        // unload the room if empty.
-        if (rooms.get(room).getClients().isEmpty())
-            rooms.remove(room);
+            notifyRoomEvent(room, new Message()
+                    .setContent(client.getUsername() + " has left the room."));
 
-        sendBus(NamedBus.NOTIFY(), new UserEvent(room, client.getUsername(), false));
+            // unload the room if empty, triggers a reload on next join.
+            if (rooms.get(room).getClients().isEmpty())
+                rooms.remove(room);
+
+            sendBus(NamedBus.NOTIFY(), new UserEvent(room, client.getUsername(), false));
+        }
     }
 
     private void addToRoom(String room, ClientID client) {
@@ -195,6 +221,14 @@ public class ChatVerticle implements Verticle {
         }
     }
 
+    /**
+     * Sets the topic for a room.
+     *
+     * @param name             the room which should have its topic changed.
+     * @param topic            the topic itself.
+     * @param locallyInitiated indicates whether a directly connected client initiated the change.
+     *                         if set to false indicating that it was received as an event. (should not be broadcast)
+     */
     protected void setRoomTopic(String name, String topic, boolean locallyInitiated) {
         ChatRoom room = rooms.get(name);
         Join data = new Join(name, topic);
@@ -207,6 +241,12 @@ public class ChatVerticle implements Verticle {
             sendBus(NamedBus.NOTIFY(), new Topic(name, topic));
     }
 
+    /**
+     * Broadcast a message to all users within the same room.
+     *
+     * @param name    of the room in which the message should be sent.
+     * @param message which should be sent.
+     */
     protected void sendRoom(String name, Message message) {
         ChatRoom room = rooms.get(name);
 
@@ -216,6 +256,12 @@ public class ChatVerticle implements Verticle {
             }
     }
 
+    /**
+     * Sends a message tagged as a command.
+     *
+     * @param client  the receiver of the message.
+     * @param content the content of the message.
+     */
     protected void sendCommand(ClientID client, String content) {
         Message message = new Message(content).setCommand(true);
         sendBus(client.getId(), message);
@@ -230,6 +276,14 @@ public class ChatVerticle implements Verticle {
         return clients;
     }
 
+    /**
+     * Request a change of the rooms topic, the request is rejected when the requestor is not the owner
+     * of the room.
+     *
+     * @param roomName name of the room which should have the topic changed.
+     * @param topic    the new topic.
+     * @param client   the initiator of the request.
+     */
     protected void trySetTopic(String roomName, String topic, ClientID client) {
         Room room = rooms.get(roomName).getSettings();
 

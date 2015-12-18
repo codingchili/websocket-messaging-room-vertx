@@ -2,7 +2,9 @@ package com.rduda.frontend.VertChat.Protocol;
 
 /**
  * Created by Robin on 2015-12-17.
- */
+ *
+ * Transfer object for user events.
+ **/
 public class UserEvent {
     private Boolean join;
     private String room;

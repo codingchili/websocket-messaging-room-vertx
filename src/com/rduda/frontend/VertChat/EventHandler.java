@@ -4,8 +4,10 @@ import com.rduda.frontend.VertChat.Protocol.*;
 
 /**
  * Created by Robin on 2015-12-17.
+ * <p>
+ * Handles events received from the connector backend service.
  */
-public enum EventHandler {
+enum EventHandler {
     message() {
         @Override
         public void invoke(Event event) {
@@ -66,7 +68,7 @@ public enum EventHandler {
             ChatVerticle handler = event.getHandler();
 
             for (Message message : history.getList()) {
-                handler.sendRoom(history.getRoom(), message.resetHeader());
+                handler.sendBus(history.getHeader().getActor(), message.resetHeader());
             }
 
             handler.notifyRoomLoaded(history.getRoom(),

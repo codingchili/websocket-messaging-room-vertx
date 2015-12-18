@@ -2,6 +2,8 @@ package com.rduda.frontend.VertChat.Protocol;
 
 /**
  * Created by Robin on 2015-12-16.
+ * <p>
+ * Transfer object for querying a room or returning a query response.
  */
 public class Room {
     private String topic;

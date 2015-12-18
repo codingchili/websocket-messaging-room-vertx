@@ -6,6 +6,8 @@ import java.util.HashMap;
 
 /**
  * Created by Robin on 2015-12-16.
+ * <p>
+ * Defines a room, of connected clients and metadata.
  */
 class ChatRoom {
     private HashMap<String, ClientID> clients = new HashMap<>();

@@ -4,6 +4,8 @@ import java.util.List;
 
 /**
  * Created by Robin on 2015-12-17.
+ *
+ * Transfer object for history requests/replies.
  */
 public class History {
     private String room;

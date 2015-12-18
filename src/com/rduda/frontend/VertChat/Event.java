@@ -2,6 +2,8 @@ package com.rduda.frontend.VertChat;
 
 /**
  * Created by Robin on 2015-12-16.
+ *
+ * Used to pass data to an Event Handler.
  */
 class Event {
     private String data;

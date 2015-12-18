@@ -3,7 +3,7 @@ package com.rduda.frontend.VertChat.Protocol;
 /**
  * Created by Robin on 2015-12-16.
  * <p>
- * .
+ * Transfer object for a room join-request/reply.
  */
 public class Join {
     private Header header;
@@ -17,6 +17,10 @@ public class Join {
 
     public Join(String room, String topic) {
         this(new Room(room, topic));
+    }
+
+    public Join(String room) {
+        this(new Room(room, ""));
     }
 
     public Join(Room room) {

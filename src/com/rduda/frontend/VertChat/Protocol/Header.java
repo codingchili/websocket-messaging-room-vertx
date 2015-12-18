@@ -3,7 +3,7 @@ package com.rduda.frontend.VertChat.Protocol;
 /**
  * Created by Robin on 2015-12-16.
  *
- * All messages has a header.
+ * All transfer messages must contain a header.
  */
 
 public class Header {

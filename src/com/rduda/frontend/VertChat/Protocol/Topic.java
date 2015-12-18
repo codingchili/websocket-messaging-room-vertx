@@ -2,6 +2,8 @@ package com.rduda.frontend.VertChat.Protocol;
 
 /**
  * Created by Robin on 2015-12-16.
+ *
+ * Transfer object for changing the topic and notifying topic changes.
  */
 public class Topic {
     private Header header;
@@ -10,6 +12,10 @@ public class Topic {
 
     public Topic() {
         this.header = new Header("topic");
+    }
+
+    public Topic(String topic) {
+        this(null, topic);
     }
 
     public Topic(String room, String topic) {

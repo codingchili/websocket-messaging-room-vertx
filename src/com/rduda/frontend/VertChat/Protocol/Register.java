@@ -3,7 +3,7 @@ package com.rduda.frontend.VertChat.Protocol;
 /**
  * Created by Robin on 2015-12-16.
  * <p>
- * Message to Register the chatserver with the backend.
+ * Message to Register the chat-server with the backend.
  */
 public class Register {
     private String name;

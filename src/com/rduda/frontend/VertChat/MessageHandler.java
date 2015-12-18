@@ -4,9 +4,10 @@ import com.rduda.frontend.VertChat.Protocol.*;
 
 /**
  * Created by Robin on 2015-12-17.
+ * <p>
+ * Handles incoming messages from clients.
  */
-// Handles event from a client.
-public enum MessageHandler {
+enum MessageHandler {
     message() {
         @Override
         public void invoke(Parameters params) {
@@ -59,7 +60,6 @@ public enum MessageHandler {
     help() {
         @Override
         public void invoke(Parameters params) {
-            Help help = (Help) Serializer.unpack(params.getData(), Help.class);
             ChatVerticle handler = params.getHandler();
             handler.sendCommand(params.getClient(),
                     "[/join <room>, /authenticate <user> <pass>, /connect <host:port>, /topic <string>, /help, /servers]");

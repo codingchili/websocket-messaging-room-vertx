@@ -2,6 +2,8 @@ package com.rduda.frontend.VertChat.Protocol;
 
 /**
  * Created by Robin on 2015-12-16.
+ * <p>
+ * A host running the room protocol.
  */
 public class Server {
     private String ip;

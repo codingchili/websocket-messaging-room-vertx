@@ -10,8 +10,15 @@ import java.io.IOException;
 /**
  * Created by Robin on 2015-12-16.
  *
+ * Serializes objects to JSON and back.
  */
 public abstract class Serializer {
+
+    /**
+     * Serializes an object as JSON.
+     * @param object containing simple types that allow JSON transform.
+     * @return a JSON string representing the object.
+     */
     public static String pack(Object object) {
         try {
             ObjectMapper mapper = new ObjectMapper();
@@ -22,7 +29,12 @@ public abstract class Serializer {
         }
     }
 
-
+    /**
+     * Deserializes a JSON string into an object.
+     * @param json String containing the object values.
+     * @param format class to be populated with the key/value pair.
+     * @return an unpacked object.
+     */
     public static Object unpack(String json, Class format) {
         try {
             ObjectMapper mapper = new ObjectMapper();

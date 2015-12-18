@@ -2,6 +2,8 @@ package com.rduda.frontend.VertChat.Protocol;
 
 /**
  * Created by Robin on 2015-12-16.
+ * <p>
+ * Transfer object for Authentication requests/replies.
  */
 public class Authenticate {
     private Header header;

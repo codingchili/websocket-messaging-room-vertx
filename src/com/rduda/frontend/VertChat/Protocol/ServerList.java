@@ -4,12 +4,15 @@ import java.util.List;
 
 /**
  * Created by Robin on 2015-12-16.
+ *
+ * Transfer object for requesting/returning a list of the currently connected servers.
  */
 public class ServerList {
     private Header header;
     private List<Server> list;
 
     public ServerList() {
+        this("");
     }
 
     public ServerList(String actor) {
