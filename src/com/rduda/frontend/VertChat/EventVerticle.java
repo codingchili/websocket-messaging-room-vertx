@@ -14,8 +14,7 @@ import io.vertx.core.http.HttpClient;
  * Handles events from the backend and emits events to the backend.
  */
 class EventVerticle implements Verticle {
-    private static final String REGISTER_NAME = "VERT.X";
-    private static final Integer CONNECTOR_PORT = 5050;
+    private static final Integer CONNECTOR_PORT = 5030;
     private Vertx vertx;
     private HttpClient client;
 
@@ -38,21 +37,21 @@ class EventVerticle implements Verticle {
     private void connectToBackend() {
         client = vertx.createHttpClient();
 
-        client.websocketStream(CONNECTOR_PORT, "localhost", "/").handler(event -> {
+        client.websocket(CONNECTOR_PORT, "localhost", "/", event -> {
 
             // listen for events from the backend connector service.
             event.handler(data -> {
-                vertx.eventBus().send(NamedBus.EVENT(), data);
+                vertx.eventBus().send(Configuration.EVENT(), data);
             });
 
             // forward emitted events onto the connector.
-            vertx.eventBus().consumer(NamedBus.NOTIFY(), handler -> {
+            vertx.eventBus().consumer(Configuration.NOTIFY(), handler -> {
                 vertx.eventBus().send(event.textHandlerID(), handler.body().toString());
             });
 
             // register this server to the connector for events.
             vertx.eventBus().send(event.textHandlerID(),
-                    Serializer.pack(new Register(REGISTER_NAME, ChatServer.LISTEN_PORT + "")));
+                    Serializer.pack(new Register(Configuration.REGISTER_NAME, Configuration.LISTEN_PORT + "")));
         });
     }
 

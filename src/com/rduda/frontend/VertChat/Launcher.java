@@ -10,8 +10,7 @@ import io.vertx.core.Vertx;
  * <p>
  * Communicates with the client through a set of websockets.
  */
-public class ChatServer implements Verticle {
-    public final static Integer LISTEN_PORT = 4042;
+public class Launcher implements Verticle {
     private Vertx vertx;
 
     public static void main(String[] args) {

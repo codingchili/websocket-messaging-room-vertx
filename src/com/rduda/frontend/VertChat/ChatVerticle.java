@@ -16,14 +16,11 @@ import java.util.Map;
  * Handles messages from the client and passes them to the EventHandler.
  */
 class ChatVerticle implements Verticle {
-    public final static String DEFAULT_ROOM = "SYSTEM";
-    public final static String PUBLIC_ROOM = "General";
-    private final static String SERVER_NAME = "VERT.X";
-    private final static String DEFAULT_TOPIC = "Authentication Required";
     private Map<String, MessageHandler> messageHandler = new HashMap<>();
     private Map<String, EventHandler> eventHandler = new HashMap<>();
     private Map<String, ClientID> clients = new HashMap<>();
     private Map<String, ChatRoom> rooms = new HashMap<>();
+    private LoadManager loadManager;
     private Vertx vertx;
     private HttpServer server;
 
@@ -37,21 +34,23 @@ class ChatVerticle implements Verticle {
     public void init(Vertx vertx, Context context) {
         this.vertx = vertx;
 
-        // Bind action names to methods, using an enum.
-        messageHandler.put("message", MessageHandler.message);
-        messageHandler.put("authenticate", MessageHandler.authenticate);
-        messageHandler.put("join", MessageHandler.join);
-        messageHandler.put("topic", MessageHandler.topic);
-        messageHandler.put("help", MessageHandler.help);
-        messageHandler.put("server.list", MessageHandler.servers);
+        loadManager = new LoadManager(vertx);
 
-        eventHandler.put("message", EventHandler.message);
-        eventHandler.put("authenticate", EventHandler.authenticate);
-        eventHandler.put("room", EventHandler.room);
-        eventHandler.put("user.event", EventHandler.join);
-        eventHandler.put("history", EventHandler.history);
-        eventHandler.put("topic", EventHandler.topic);
-        eventHandler.put("server.list", EventHandler.servers);
+        // Bind action names to methods, using an enum.
+        messageHandler.put("message", MessageHandler.MESSAGE);
+        messageHandler.put("authenticate", MessageHandler.AUTHENTICATE);
+        messageHandler.put("join", MessageHandler.JOIN);
+        messageHandler.put("topic", MessageHandler.TOPIC);
+        messageHandler.put("help", MessageHandler.HELP);
+        messageHandler.put("server.list", MessageHandler.SERVERS);
+
+        eventHandler.put("message", EventHandler.MESSAGE);
+        eventHandler.put("authenticate", EventHandler.AUTHENTICATE);
+        eventHandler.put("room", EventHandler.ROOM);
+        eventHandler.put("user.event", EventHandler.JOIN);
+        eventHandler.put("history", EventHandler.HISTORY);
+        eventHandler.put("topic", EventHandler.TOPIC);
+        eventHandler.put("server.list", EventHandler.SERVERS);
     }
 
     protected Map<String, ChatRoom> getRooms() {
@@ -65,7 +64,7 @@ class ChatVerticle implements Verticle {
     }
 
     private void startEventListener() {
-        vertx.eventBus().consumer(NamedBus.EVENT(), handler -> {
+        vertx.eventBus().consumer(Configuration.EVENT(), handler -> {
             Packet packet = (Packet) Serializer.unpack(handler.body().toString(), Packet.class);
             eventHandler.get(packet.getHeader().getAction()).invoke(new Event(handler.body().toString(), this));
         });
@@ -78,19 +77,33 @@ class ChatVerticle implements Verticle {
      * and returns the existing, or creates a new. This method is used as a callback for completion.
      *
      * @param client the client joining the room.
-     * @param name   the name of the room to join.
+     * @param room   the room to be joined.
      */
-    protected void joinRoom(ClientID client, String name) {
+    protected void joinRoom(ClientID client, Room room) {
+        String name = room.getRoom();
+
         if (rooms.containsKey(name)) {
+
+            if (room.getCreated()) {
+                sendMessage(client, "Created room '" + name + "'.");
+                notifyRoomEvent(room.getRoom(), client.getUsername(), true);
+            } else
+                sendBus(Configuration.NOTIFY(), new History(name, client.getId()));
+
             sendMessage(client, "Room owner \'" + rooms.get(name).getOwner() + "\'.");
             sendRoomData(client, new Join(rooms.get(name).getSettings()));
             addToRoom(name, client);
-
-            sendBus(NamedBus.NOTIFY(), new History(name, client.getId()));
         } else {
+            sendBus(Configuration.NOTIFY(), new RoomEvent(name, RoomEvent.RoomStatus.POPULATED));
             sendMessage(client, "Loading room..");
-            sendBus(NamedBus.NOTIFY(), new Room(name, "/topic <string>", client.getUsername(), client.getId()));
+            sendBus(Configuration.NOTIFY(), new Room(name, "/topic <string>", client.getUsername(), client.getId()));
         }
+    }
+
+
+    protected void notifyRoomEvent(String room, String username, Boolean join) {
+        Message message = new Message(username + " has " + (join ? "joined " : "left") + " the room.");
+        sendRoom(room, message);
     }
 
     /**
@@ -110,11 +123,8 @@ class ChatVerticle implements Verticle {
      * @param client joinee.
      */
     protected void notifyRoomLoaded(String room, ClientID client) {
-        Message message = new Message()
-                .setContent(client.getUsername() + " has joined the room.");
-
-        notifyRoomEvent(room, message);
-        sendBus(NamedBus.NOTIFY(), new UserEvent(room, client.getUsername(), true));
+        notifyRoomEvent(room, client.getUsername(), true);
+        sendBus(Configuration.NOTIFY(), new UserEvent(room, client.getUsername(), true));
     }
 
     /**
@@ -128,13 +138,14 @@ class ChatVerticle implements Verticle {
             socket.handler(event -> {
                 Packet packet = (Packet) (Serializer.unpack(event.toString(), Packet.class));
 
-                // All packets except authenticate requires authentication.
-                if (!packet.getHeader().getAction().equals("authenticate") && !client.isAuthenticated())
-                    notAuthenticated(client);
-                else
-                    messageHandler.get(packet.getHeader().getAction()).invoke(
-                            new Parameters(event.toString(), socket, client, this)
-                    );
+                if (messageHandler.get(packet.getHeader().getAction()) != null) {
+                    if (!packet.getHeader().getAction().equals("authenticate") && !client.isAuthenticated())
+                        notAuthenticated(client);
+                    else
+                        messageHandler.get(packet.getHeader().getAction()).invoke(
+                                new Parameters(event.toString(), socket, client, this)
+                        );
+                }
             });
 
             // Whenever a client disconnects for any reason, it must be removed from the joined room.
@@ -144,13 +155,13 @@ class ChatVerticle implements Verticle {
             });
 
             onClientConnect(client);
-        }).listen(ChatServer.LISTEN_PORT, "localhost");
+        }).listen(Configuration.LISTEN_PORT);
     }
 
     private void onClientConnect(ClientID client) {
         addClient(client);
-        sendRoomData(client, new Join(DEFAULT_ROOM, DEFAULT_TOPIC));
-        sendMessage(client, "Connected to " + SERVER_NAME);
+        sendRoomData(client, new Join(Configuration.SERVER_ROOM, Configuration.SERVER_TOPIC));
+        sendMessage(client, "Connected to " + Configuration.SERVER_NAME);
         sendAuthenticationRequired(client);
     }
 
@@ -193,16 +204,17 @@ class ChatVerticle implements Verticle {
             rooms.get(room).remove(client);
 
             client.setRoom(null);
-
-            notifyRoomEvent(room, new Message()
-                    .setContent(client.getUsername() + " has left the room."));
+            notifyRoomEvent(room, client.getUsername(), false);
 
             // unload the room if empty, triggers a reload on next join.
-            if (rooms.get(room).getClients().isEmpty())
+            if (rooms.get(room).getClients().isEmpty()) {
                 rooms.remove(room);
 
-            sendBus(NamedBus.NOTIFY(), new UserEvent(room, client.getUsername(), false));
+                sendBus(Configuration.NOTIFY(), new RoomEvent(room, RoomEvent.RoomStatus.DEPLETED));
+            }
+            sendBus(Configuration.NOTIFY(), new UserEvent(room, client.getUsername(), false));
         }
+        loadManager.manage(clients.size());
     }
 
     private void addToRoom(String room, ClientID client) {
@@ -211,14 +223,7 @@ class ChatVerticle implements Verticle {
 
         rooms.get(room).add(client);
         client.setRoom(room);
-    }
-
-    private void notifyRoomEvent(String name, Message message) {
-        HashMap<String, ClientID> clients = rooms.get(name).getClients();
-
-        for (ClientID client : clients.values()) {
-            sendBus(client.getId(), message);
-        }
+        loadManager.manage(clients.size());
     }
 
     /**
@@ -238,7 +243,7 @@ class ChatVerticle implements Verticle {
             sendRoomData(client, data);
 
         if (locallyInitiated)
-            sendBus(NamedBus.NOTIFY(), new Topic(name, topic));
+            sendBus(Configuration.NOTIFY(), new Topic(name, topic));
     }
 
     /**
@@ -250,8 +255,8 @@ class ChatVerticle implements Verticle {
     protected void sendRoom(String name, Message message) {
         ChatRoom room = rooms.get(name);
 
-        if (room != null && room.getClients().size() != 0)
-            for (ClientID client : rooms.get(name).getClients().values()) {
+        if (room != null)
+            for (ClientID client : room.getClients().values()) {
                 sendBus(client.getId(), message);
             }
     }
@@ -263,7 +268,7 @@ class ChatVerticle implements Verticle {
      * @param content the content of the message.
      */
     protected void sendCommand(ClientID client, String content) {
-        Message message = new Message(content).setCommand(true);
+        Message message = new Message(content).setCommand(false);
         sendBus(client.getId(), message);
     }
 
@@ -296,7 +301,7 @@ class ChatVerticle implements Verticle {
                     .setCommand(true);
 
             sendRoom(room.getRoom(), message);
-            sendBus(NamedBus.NOTIFY(), message);
+            sendBus(Configuration.NOTIFY(), message);
         } else {
             sendCommand(
                     client,

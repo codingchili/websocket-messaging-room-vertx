@@ -1,16 +1,19 @@
 package com.rduda.frontend.VertChat.Protocol;
 
+import com.rduda.frontend.VertChat.Configuration;
+
 /**
  * Created by Robin on 2015-12-16.
  * <p>
  * Transfer object for querying a room or returning a query response.
  */
 public class Room {
-    private String topic;
-    private String room;
+    private String topic = Configuration.SERVER_TOPIC;
+    private String room = Configuration.DEFAULT_ROOM;
     private String owner;
     private Header header;
     private String username;
+    private Boolean created = false;
 
     public Room() {
     }
@@ -33,6 +36,14 @@ public class Room {
     public Room setOwner(String owner) {
         this.owner = owner;
         return this;
+    }
+
+    public Boolean getCreated() {
+        return created;
+    }
+
+    public void setCreated(Boolean created) {
+        this.created = created;
     }
 
     public Header getHeader() {
@@ -63,7 +74,8 @@ public class Room {
         return room;
     }
 
-    public void setRoom(String name) {
+    public Room setRoom(String name) {
         this.room = name;
+        return this;
     }
 }

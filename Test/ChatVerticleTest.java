@@ -1,4 +1,5 @@
-import com.rduda.frontend.VertChat.ChatServer;
+import com.rduda.frontend.VertChat.Configuration;
+import com.rduda.frontend.VertChat.Launcher;
 import com.rduda.frontend.VertChat.Protocol.*;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -161,7 +162,7 @@ public class ChatVerticleTest {
     private void getUnconnected(Handler<Buffer> handler, Object... messages) {
         HttpClient client = vertx.createHttpClient();
 
-        client.websocket(ChatServer.LISTEN_PORT, "localhost", "/", event -> {
+        client.websocket(Configuration.LISTEN_PORT, "localhost", "/", event -> {
             event.handler(handler);
 
             for (Object message : messages) {
@@ -173,7 +174,7 @@ public class ChatVerticleTest {
     private void getConnectedSkipHandshake(Handler<Buffer> handler, Object... messages) {
         HttpClient client = vertx.createHttpClient();
 
-        client.websocket(ChatServer.LISTEN_PORT, "localhost", "/", event -> {
+        client.websocket(Configuration.LISTEN_PORT, "localhost", "/", event -> {
             event.handler(data -> {
 
                 if (data.toString().contains("/authenticate")) {

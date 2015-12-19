@@ -8,7 +8,16 @@ package com.rduda.frontend.VertChat.Protocol;
 public class Server {
     private String ip;
     private String name;
-    private String port;
+    private Integer port;
+    private Boolean full = false;
+
+    public Boolean getFull() {
+        return full;
+    }
+
+    public void setFull(Boolean full) {
+        this.full = full;
+    }
 
     public String getIp() {
         return ip;
@@ -26,11 +35,11 @@ public class Server {
         this.name = name;
     }
 
-    public String getPort() {
+    public Integer getPort() {
         return port;
     }
 
-    public void setPort(String port) {
+    public void setPort(Integer port) {
         this.port = port;
     }
 }

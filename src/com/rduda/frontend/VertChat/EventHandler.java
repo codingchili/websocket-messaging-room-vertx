@@ -8,7 +8,7 @@ import com.rduda.frontend.VertChat.Protocol.*;
  * Handles events received from the connector backend service.
  */
 enum EventHandler {
-    message() {
+    MESSAGE() {
         @Override
         public void invoke(Event event) {
             Message message = (Message) Serializer.unpack(event.getData(), Message.class);
@@ -16,52 +16,39 @@ enum EventHandler {
         }
     },
 
-    room() {
+    ROOM() {
         @Override
         public void invoke(Event event) {
             ChatVerticle handler = event.getHandler();
             Room room = (Room) Serializer.unpack(event.getData(), Room.class);
 
             handler.getRooms().put(room.getRoom(), new ChatRoom(room));
-            handler.joinRoom(handler.getClient(room.getHeader().getActor()), room.getRoom());
+            handler.joinRoom(handler.getClient(room.getHeader().getActor()), room);
         }
     },
 
-    authenticate() {
+    AUTHENTICATE() {
         @Override
         public void invoke(Event event) {
             Authenticate authenticate = (Authenticate) Serializer.unpack(event.getData(), Authenticate.class);
-            Message message = new Message("Authentication Failure.");
             ChatVerticle handler = event.getHandler();
 
-            if (authenticate.isCreated())
-                message = new Message("Registered account " + authenticate.getUsername());
-            else if (authenticate.isAuthenticated())
-                message = new Message().setContent("Authenticated.");
-
-            handler.sendBus(authenticate.getHeader().getActor(), message);
-
-            if (authenticate.isAuthenticated()) {
-                handler.getClients().get(authenticate.getHeader().getActor()).setAuthenticated(true);
-                handler.joinRoom(handler.getClient(authenticate.getHeader().getActor()), ChatVerticle.PUBLIC_ROOM);
-            }
+            handler.sendBus(authenticate.getHeader().getActor(), authenticate);
+            handler.getClients().get(authenticate.getHeader().getActor()).setAuthenticated(authenticate.isAuthenticated());
         }
     },
 
-    join() {
+    JOIN() {
         @Override
         public void invoke(Event event) {
             UserEvent userEvent = (UserEvent) Serializer.unpack(event.getData(), UserEvent.class);
             ChatVerticle handler = event.getHandler();
 
-            handler.sendRoom(userEvent.getRoom(),
-                    new Message(userEvent.getUsername() + " has " +
-                            (userEvent.getJoin() ? "joined " : "left") +
-                            " the room."));
+            handler.notifyRoomEvent(userEvent.getRoom(), userEvent.getUsername(), userEvent.getJoin());
         }
     },
 
-    history() {
+    HISTORY() {
         @Override
         public void invoke(Event event) {
             History history = (History) Serializer.unpack(event.getData(), History.class);
@@ -76,7 +63,7 @@ enum EventHandler {
         }
     },
 
-    topic() {
+    TOPIC() {
         @Override
         public void invoke(Event event) {
             ChatVerticle handler = event.getHandler();
@@ -85,15 +72,16 @@ enum EventHandler {
         }
     },
 
-    servers() {
+    SERVERS() {
         @Override
         public void invoke(Event event) {
             ChatVerticle handler = event.getHandler();
             ServerList servers = (ServerList) Serializer.unpack(event.getData(), ServerList.class);
 
             for (Server server : servers.getList()) {
-                handler.sendCommand(handler.getClient(servers.getHeader().getActor())
-                        , server.getIp() + ":" + server.getPort() + " - '" + server.getName() + "'.");
+                handler.sendCommand(handler.getClient(servers.getHeader().getActor()),
+                        server.getIp() + ":" + server.getPort() + " - '" + server.getName()
+                                + "', State = " + (server.getFull() ? "FULL" : "AVAILABLE") + ".");
             }
         }
     };

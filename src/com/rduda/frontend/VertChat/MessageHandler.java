@@ -8,7 +8,7 @@ import com.rduda.frontend.VertChat.Protocol.*;
  * Handles incoming messages from clients.
  */
 enum MessageHandler {
-    message() {
+    MESSAGE() {
         @Override
         public void invoke(Parameters params) {
             ChatVerticle handler = params.getHandler();
@@ -19,35 +19,40 @@ enum MessageHandler {
             message.setRoom(client.getRoom());
 
             handler.sendRoom(client.getRoom(), message);
-            handler.sendBus(NamedBus.NOTIFY(), message);
+            handler.sendBus(Configuration.NOTIFY(), message);
         }
     },
 
-    authenticate() {
+    AUTHENTICATE() {
         @Override
         public void invoke(Parameters params) {
             ChatVerticle handler = params.getHandler();
             Authenticate authenticate = (Authenticate) Serializer.unpack(params.getData(), Authenticate.class);
-            authenticate.getHeader().setActor(params.getClient().getId());
 
-            params.getClient().setUsername(authenticate.getUsername());
-            handler.sendBus(NamedBus.NOTIFY(), authenticate);
+            if (params.getClient().isAuthenticated()) {
+                params.getHandler().sendCommand(params.getClient(), "Already authenticated, use /logout.");
+            } else {
+                authenticate.getHeader().setActor(params.getClient().getId());
+                params.getClient().setUsername(authenticate.getUsername());
+                handler.sendBus(Configuration.NOTIFY(), authenticate);
+            }
         }
     },
 
-    join() {
+    JOIN() {
         @Override
         public void invoke(Parameters params) {
             Join join = (Join) Serializer.unpack(params.getData(), Join.class);
 
             if (!join.getRoom().equals(params.getClient().getRoom()))
-                params.getHandler().joinRoom(params.getClient(), join.getRoom());
-            else
+                params.getHandler().joinRoom(params.getClient(), new Room().setRoom(join.getRoom()));
+            else {
                 params.getHandler().sendCommand(params.getClient(), "Already inside room.");
+            }
         }
     },
 
-    topic() {
+    TOPIC() {
         @Override
         public void invoke(Parameters params) {
             Topic topic = (Topic) Serializer.unpack(params.getData(), Topic.class);
@@ -57,22 +62,23 @@ enum MessageHandler {
         }
     },
 
-    help() {
+    HELP() {
         @Override
         public void invoke(Parameters params) {
             ChatVerticle handler = params.getHandler();
+
             handler.sendCommand(params.getClient(),
                     "[/join <room>, /authenticate <user> <pass>, /connect <host:port>, /topic <string>, /help, /servers]");
         }
     },
 
-    servers() {
+    SERVERS() {
         @Override
         public void invoke(Parameters params) {
             ChatVerticle handler = params.getHandler();
             ClientID client = params.getClient();
 
-            handler.sendBus(NamedBus.NOTIFY(), new ServerList(client.getId()));
+            handler.sendBus(Configuration.NOTIFY(), new ServerList(client.getId()));
         }
     };
 
