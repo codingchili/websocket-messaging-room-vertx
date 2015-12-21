@@ -1,6 +1,6 @@
-import com.rduda.frontend.VertChat.Configuration;
-import com.rduda.frontend.VertChat.Launcher;
-import com.rduda.frontend.VertChat.Protocol.*;
+package com.websocket.frontend.room;
+
+import com.websocket.frontend.room.Protocol.*;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -20,10 +20,11 @@ import java.util.UUID;
  * Tests the Chat.
  */
 @RunWith(VertxUnitRunner.class)
-public class ChatVerticleTest {
+public class ChatVerticleIntegration {
     private Vertx vertx;
     private String USER;
     private String PASS;
+    private String ROOM;
 
     @Rule
     public Timeout timeout = new Timeout(2000);
@@ -33,6 +34,7 @@ public class ChatVerticleTest {
         vertx = Vertx.vertx();
         USER = UUID.randomUUID().toString();
         PASS = USER;
+        ROOM = UUID.randomUUID().toString();
     }
 
     @After
@@ -52,8 +54,14 @@ public class ChatVerticleTest {
         final Async async = context.async();
 
         getConnectedSkipHandshake(data -> {
-            if (data.toString().contains("VERT.X"))
+            Packet packet = (Packet) Serializer.unpack(data.toString(), Packet.class);
+
+            System.out.println(data.toString());
+
+            if (packet.getAction().equals(Message.ACTION)) {
+                context.assertTrue(data.toString().contains("AVAILABLE"));
                 async.complete();
+            }
         }, new ServerList());
     }
 
@@ -62,9 +70,14 @@ public class ChatVerticleTest {
         final Async async = context.async();
 
         getConnectedSkipHandshake(data -> {
-            if (data.toString().contains("Not authorized"))
-                async.complete();
-        }, new Topic(null, "topic_new"));
+            USER += ".1";
+
+            getConnectedSkipHandshake(data2 -> {
+                if (data2.toString().contains("Not authorized"))
+                    async.complete();
+
+            }, new Topic(null, "topic_new"));
+        }, new Message());
     }
 
     @Test
@@ -116,7 +129,7 @@ public class ChatVerticleTest {
         getConnectedSkipHandshake(data -> {
             context.assertTrue(data.toString().contains("Already inside room"));
             async.complete();
-        }, (new Join("General", "")));
+        }, (new Join(ROOM, "")));
     }
 
     @Test
@@ -144,8 +157,14 @@ public class ChatVerticleTest {
         final Async async = context.async();
 
         getUnconnected(handler -> {
-            if (handler.toString().contains("Registered account"))
-                async.complete();
+            Packet packet = (Packet) Serializer.unpack(handler.toString(), Packet.class);
+
+            if (packet.getAction().equals(Authenticate.ACTION)) {
+                Authenticate authenticate = (Authenticate) Serializer.unpack(handler.toString(), Authenticate.class);
+
+                if (authenticate.isCreated() && authenticate.isAuthenticated())
+                    async.complete();
+            }
         }, new Authenticate(USER, PASS));
     }
 
@@ -166,7 +185,7 @@ public class ChatVerticleTest {
             event.handler(handler);
 
             for (Object message : messages) {
-                sendBus(event.textHandlerID(), Serializer.pack(message));
+                sendBus(event.textHandlerID(), message);
             }
         });
     }
@@ -176,22 +195,31 @@ public class ChatVerticleTest {
 
         client.websocket(Configuration.LISTEN_PORT, "localhost", "/", event -> {
             event.handler(data -> {
+                Packet packet = (Packet) Serializer.unpack(data.toString(), Packet.class);
 
-                if (data.toString().contains("/authenticate")) {
-                    sendBus(event.textHandlerID(), Serializer.pack(new Authenticate(USER, PASS)));
+                System.out.println("get.connected =" + data.toString());
+
+                if (packet.getAction().equals(Authenticate.ACTION)) {
+                    sendBus(event.textHandlerID(), new Join(ROOM, "topic"));
                 }
 
-                if (data.toString().contains(USER + " has joined the room")) {
+
+                if (packet.getAction().equals(Join.ACTION) && data.toString().contains(ROOM)) {
                     event.handler(handler);
 
-                    for (Object message : messages)
-                        sendBus(event.textHandlerID(), Serializer.pack(message));
+                    System.out.println("action == join && room = ok");
+
+                    for (Object message : messages) {
+                        sendBus(event.textHandlerID(), message);
+                    }
                 }
             });
+
+            sendBus(event.textHandlerID(), new Authenticate(USER, PASS));
         });
     }
 
-    private void sendBus(String address, String message) {
-        vertx.eventBus().send(address, message);
+    private void sendBus(String address, Object message) {
+        vertx.eventBus().send(address, Serializer.pack(message));
     }
 }
