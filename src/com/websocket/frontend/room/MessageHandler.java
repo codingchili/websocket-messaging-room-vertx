@@ -11,43 +11,24 @@ enum MessageHandler {
     MESSAGE() {
         @Override
         public void invoke(Parameters params) {
-            ChatVerticle handler = params.getHandler();
-            ClientID client = params.getClient();
+            Message message = (Message) Serializer.unpack(params.data, Message.class);
+            message.setSender(params.client.getUsername());
+            message.setRoom(params.client.getRoom());
 
-            Message message = (Message) Serializer.unpack(params.getData(), Message.class);
-            message.setSender(client.getUsername());
-            message.setRoom(client.getRoom());
-
-            handler.sendRoom(client.getRoom(), message);
-            handler.sendBus(Configuration.NOTIFY(), message);
-        }
-    },
-
-    AUTHENTICATE() {
-        @Override
-        public void invoke(Parameters params) {
-            ChatVerticle handler = params.getHandler();
-            Authenticate authenticate = (Authenticate) Serializer.unpack(params.getData(), Authenticate.class);
-
-            if (params.getClient().isAuthenticated()) {
-                params.getHandler().sendCommand(params.getClient(), "Already authenticated, use /logout.");
-            } else {
-                authenticate.getHeader().setActor(params.getClient().getId());
-                params.getClient().setUsername(authenticate.getUsername());
-                handler.sendBus(Configuration.NOTIFY(), authenticate);
-            }
+            params.handler.sendRoom(params.client.getRoom(), message);
+            params.handler.sendBus(Configuration.NOTIFY(), message);
         }
     },
 
     JOIN() {
         @Override
         public void invoke(Parameters params) {
-            Join join = (Join) Serializer.unpack(params.getData(), Join.class);
+            Join join = (Join) Serializer.unpack(params.data, Join.class);
 
-            if (!join.getRoom().equals(params.getClient().getRoom()))
-                params.getHandler().joinRoom(params.getClient(), new Room().setRoom(join.getRoom()));
+            if (!join.getRoom().equals(params.client.getRoom()))
+                params.handler.joinRoom(params.client, new Room().setRoom(join.getRoom()));
             else {
-                params.getHandler().sendCommand(params.getClient(), "Already inside room.");
+                params.handler.sendCommand(params.client, "Already inside room.");
             }
         }
     },
@@ -55,19 +36,15 @@ enum MessageHandler {
     TOPIC() {
         @Override
         public void invoke(Parameters params) {
-            Topic topic = (Topic) Serializer.unpack(params.getData(), Topic.class);
-            ChatVerticle handler = params.getHandler();
-            ClientID client = params.getClient();
-            handler.trySetTopic(client.getRoom(), topic.getTopic(), client);
+            Topic topic = (Topic) Serializer.unpack(params.data, Topic.class);
+            params.handler.trySetTopic(params.client.getRoom(), topic.getTopic(), params.client);
         }
     },
 
     HELP() {
         @Override
         public void invoke(Parameters params) {
-            ChatVerticle handler = params.getHandler();
-
-            handler.sendCommand(params.getClient(),
+            params.handler.sendCommand(params.client,
                     "[/join <room>, /authenticate <user> <pass>, /connect <host:port>, /topic <string>, /help, /servers]");
         }
     },
@@ -75,10 +52,7 @@ enum MessageHandler {
     SERVERS() {
         @Override
         public void invoke(Parameters params) {
-            ChatVerticle handler = params.getHandler();
-            ClientID client = params.getClient();
-
-            handler.sendBus(Configuration.NOTIFY(), new ServerList(client.getId()));
+            params.handler.sendBus(Configuration.NOTIFY(), new ServerList(params.client.getId()));
         }
     };
 

@@ -10,6 +10,8 @@ public class Authenticate {
     private Header header;
     private String username;
     private String password;
+    private String token;
+    private Long expiry;
     private Boolean authenticated = false;
     private Boolean created = false;
 
@@ -30,12 +32,24 @@ public class Authenticate {
         return header;
     }
 
-    public String getActor() {
-        return header.getActor();
-    }
-
     public void setHeader(Header header) {
         this.header = header;
+    }
+
+    public Long getExpiry() {
+        return expiry;
+    }
+
+    public void setExpiry(Long expiry) {
+        this.expiry = expiry;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 
     public String getUsername() {

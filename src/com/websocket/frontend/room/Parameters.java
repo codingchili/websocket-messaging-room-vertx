@@ -8,10 +8,10 @@ import io.vertx.core.http.ServerWebSocket;
  * Passed to a Message Handler for handling messages from an user.
  */
 class Parameters {
-    private String data;
-    private ServerWebSocket socket;
-    private ClientID client;
-    private ChatVerticle handler;
+    public String data;
+    public ServerWebSocket socket;
+    public ClientID client;
+    public ChatVerticle handler;
 
     public Parameters(String data, ServerWebSocket socket, ClientID client, ChatVerticle handler) {
         this.data = data;
@@ -20,35 +20,7 @@ class Parameters {
         this.handler = handler;
     }
 
-    public String getData() {
-        return data;
-    }
-
-    public void setData(String data) {
-        this.data = data;
-    }
-
-    public ServerWebSocket getSocket() {
-        return socket;
-    }
-
-    public void setSocket(ServerWebSocket socket) {
-        this.socket = socket;
-    }
-
-    public ClientID getClient() {
-        return client;
-    }
-
-    public void setClient(ClientID client) {
-        this.client = client;
-    }
-
-    public ChatVerticle getHandler() {
-        return handler;
-    }
-
-    public void setHandler(ChatVerticle handler) {
-        this.handler = handler;
+    public String getAddress() {
+        return socket.textHandlerID();
     }
 }

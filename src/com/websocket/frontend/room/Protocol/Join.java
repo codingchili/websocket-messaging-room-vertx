@@ -1,5 +1,7 @@
 package com.websocket.frontend.room.Protocol;
 
+import com.websocket.frontend.room.Configuration;
+
 /**
  * Created by Robin on 2015-12-16.
  * <p>
@@ -8,7 +10,7 @@ package com.websocket.frontend.room.Protocol;
 public class Join {
     public static final String ACTION = "join";
     private Header header;
-    private String version = "VERT.X";
+    private String version = Configuration.SERVER_NAME;
     private String room;
     private String topic;
 

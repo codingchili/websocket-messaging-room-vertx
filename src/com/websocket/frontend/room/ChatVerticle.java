@@ -16,6 +16,7 @@ import java.util.Map;
  * Handles messages from the client and passes them to the EventHandler.
  */
 class ChatVerticle implements Verticle {
+    private Map<String, AuthenticationHandler> authenticationHandler = new HashMap<>();
     private Map<String, MessageHandler> messageHandler = new HashMap<>();
     private Map<String, EventHandler> eventHandler = new HashMap<>();
     private Map<String, ClientID> clients = new HashMap<>();
@@ -37,8 +38,10 @@ class ChatVerticle implements Verticle {
         loadManager = new LoadManager(vertx);
 
         // Bind action names to methods, using an enum.
+        authenticationHandler.put(Token.ACTION, AuthenticationHandler.AUTHENTICATE_TOKEN);
+        authenticationHandler.put(Authenticate.ACTION, AuthenticationHandler.AUTHENTICATE);
+
         messageHandler.put(Message.ACTION, MessageHandler.MESSAGE);
-        messageHandler.put(Authenticate.ACTION, MessageHandler.AUTHENTICATE);
         messageHandler.put(Join.ACTION, MessageHandler.JOIN);
         messageHandler.put(Topic.ACTION, MessageHandler.TOPIC);
         messageHandler.put(Help.ACTION, MessageHandler.HELP);
@@ -73,32 +76,32 @@ class ChatVerticle implements Verticle {
      */
     private void startServer() {
         server = vertx.createHttpServer().websocketHandler(event -> {
-            final ClientID client = new ClientID(event.textHandlerID());
-            client.setUsername(event.textHandlerID());
+                    final ClientID client = new ClientID(event.textHandlerID());
+                    client.setUsername(event.textHandlerID());
 
-            event.handler(data -> {
-                Packet packet = (Packet) (Serializer.unpack(data.toString(), Packet.class));
+                    event.handler(data -> {
+                        Packet packet = (Packet) (Serializer.unpack(data.toString(), Packet.class));
+                        System.out.println(data.toString());
 
-                System.out.println(data.toString());
+                        if (authenticationHandler.get(packet.getAction()) != null)
+                            authenticationHandler.get(packet.getAction()).invoke(
+                                    new Parameters(data.toString(), event, client, this));
 
-                if (messageHandler.get(packet.getAction()) != null) {
-                    if (!packet.getAction().equals(Authenticate.ACTION) && !client.isAuthenticated())
-                        notAuthenticated(client);
-                    else
-                        messageHandler.get(packet.getAction()).invoke(
-                                new Parameters(data.toString(), event, client, this)
-                        );
+                        else if (client.isAuthenticated())
+                            messageHandler.get(packet.getAction()).invoke(
+                                    new Parameters(data.toString(), event, client, this));
+                        else {
+                            sendAuthenticationRequired(client);
+                        }
+                    });
+
+                    event.closeHandler(close -> {
+                        removeFromRoom(client.getRoom(), client);
+                        removeClient(client);
+                    });
+                    onClientConnect(client);
                 }
-            });
-
-            event.closeHandler(close -> {
-                removeFromRoom(client.getRoom(), client);
-                removeClient(client);
-            });
-
-            onClientConnect(client);
-        }).listen(Configuration.LISTEN_PORT);
-
+        ).listen(Configuration.LISTEN_PORT);
         System.out.println("Room running on port " + Configuration.LISTEN_PORT);
     }
 
@@ -169,8 +172,6 @@ class ChatVerticle implements Verticle {
     private void onClientConnect(ClientID client) {
         addClient(client);
         sendRoomData(client, new Join(Configuration.SERVER_ROOM, Configuration.SERVER_TOPIC));
-        sendMessage(client, "Connected to " + Configuration.SERVER_NAME);
-        sendAuthenticationRequired(client);
     }
 
     private void sendMessage(ClientID client, String content) {
@@ -201,13 +202,6 @@ class ChatVerticle implements Verticle {
         sendBus(client.getId(), join);
     }
 
-    private void notAuthenticated(ClientID client) {
-        sendBus(client.getId(), new Message()
-                .setContent("Authentication Required."));
-
-        sendBus(client.getId(), new Message()
-                .setContent("/authenticate <username> <password>"));
-    }
 
     private void removeFromRoom(String room, ClientID client) {
         if (rooms.get(room) != null) {

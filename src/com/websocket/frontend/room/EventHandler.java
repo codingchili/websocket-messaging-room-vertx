@@ -11,75 +11,70 @@ enum EventHandler {
     MESSAGE() {
         @Override
         public void invoke(Event event) {
-            Message message = (Message) Serializer.unpack(event.getData(), Message.class);
-            event.getHandler().sendRoom(message.getRoom(), message);
+            Message message = (Message) Serializer.unpack(event.data, Message.class);
+            event.handler.sendRoom(message.getRoom(), message);
         }
     },
 
     ROOM() {
         @Override
         public void invoke(Event event) {
-            ChatVerticle handler = event.getHandler();
-            Room room = (Room) Serializer.unpack(event.getData(), Room.class);
-
-            handler.getRooms().put(room.getRoom(), new ChatRoom(room));
-            handler.joinRoom(handler.getClient(room.getHeader().getActor()), room);
+            Room room = (Room) Serializer.unpack(event.data, Room.class);
+            event.handler.getRooms().put(room.getRoom(), new ChatRoom(room));
+            event.handler.joinRoom(event.handler.getClient(event.actor), room);
         }
     },
 
     AUTHENTICATE() {
         @Override
         public void invoke(Event event) {
-            Authenticate authenticate = (Authenticate) Serializer.unpack(event.getData(), Authenticate.class);
-            ChatVerticle handler = event.getHandler();
+            Authenticate authenticate = (Authenticate) Serializer.unpack(event.data, Authenticate.class);
 
-            handler.sendBus(authenticate.getActor(), authenticate);
-            handler.getClients().get(authenticate.getActor()).setAuthenticated(authenticate.isAuthenticated());
+            authenticate.getHeader().setActor(null);
+
+            event.handler.sendBus(event.actor, authenticate);
+            event.handler.getClients().get(event.actor).setAuthenticated(authenticate.isAuthenticated());
         }
     },
 
     JOIN() {
         @Override
         public void invoke(Event event) {
-            UserEvent userEvent = (UserEvent) Serializer.unpack(event.getData(), UserEvent.class);
-            ChatVerticle handler = event.getHandler();
+            UserEvent userEvent = (UserEvent) Serializer.unpack(event.data, UserEvent.class);
 
-            handler.notifyRoomEvent(userEvent.getRoom(), userEvent.getUsername(), userEvent.getJoin());
+            event.handler.notifyRoomEvent(userEvent.getRoom(), userEvent.getUsername(), userEvent.getJoin());
         }
     },
 
     HISTORY() {
         @Override
         public void invoke(Event event) {
-            History history = (History) Serializer.unpack(event.getData(), History.class);
-            ChatVerticle handler = event.getHandler();
+            History history = (History) Serializer.unpack(event.data, History.class);
 
             for (Message message : history.getList()) {
-                handler.sendBus(history.getHeader().getActor(), message.resetHeader());
+                event.handler.sendBus(event.actor, message.resetHeader());
             }
 
-            handler.notifyRoomLoaded(history.getRoom(),
-                    handler.getClient(history.getHeader().getActor()));
+            event.handler.notifyRoomLoaded(history.getRoom(),
+                    event.handler.getClient(event.actor));
         }
     },
 
     TOPIC() {
         @Override
         public void invoke(Event event) {
-            ChatVerticle handler = event.getHandler();
-            Topic topic = (Topic) Serializer.unpack(event.getData(), Topic.class);
-            handler.setRoomTopic(topic.getRoom(), topic.getTopic(), false);
+            Topic topic = (Topic) Serializer.unpack(event.data, Topic.class);
+            event.handler.setRoomTopic(topic.getRoom(), topic.getTopic(), false);
         }
     },
 
     SERVERS() {
         @Override
         public void invoke(Event event) {
-            ChatVerticle handler = event.getHandler();
-            ServerList servers = (ServerList) Serializer.unpack(event.getData(), ServerList.class);
+            ServerList servers = (ServerList) Serializer.unpack(event.data, ServerList.class);
 
             for (Server server : servers.getList()) {
-                handler.sendCommand(handler.getClient(servers.getHeader().getActor()),
+                event.handler.sendCommand(event.handler.getClient(event.actor),
                         server.getIp() + ":" + server.getPort() + " - '" + server.getName()
                                 + "', State = " + (server.getFull() ? "FULL" : "AVAILABLE") + ".");
             }

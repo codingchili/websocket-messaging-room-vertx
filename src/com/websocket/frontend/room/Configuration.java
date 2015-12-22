@@ -6,12 +6,12 @@ package com.websocket.frontend.room;
  * Mapping the bus channels to constants.
  */
 public class Configuration {
-    public static final String REGISTER_NAME = "vertx.server.3";
+    public static final String REGISTER_NAME = "vertx.server.75";
     public final static String SERVER_ROOM = "SYSTEM";
     public final static String DEFAULT_ROOM = "Public";
-    public final static String SERVER_NAME = "VERT.X";
+    public final static String SERVER_NAME = "VERT.Y";
     public final static String SERVER_TOPIC = "Authentication Required";
-    public final static Integer LISTEN_PORT = 4003;
+    public final static Integer LISTEN_PORT = 4075;
 
     // maximum number of users before the server emits a FULL message.
     public static final Integer LOAD_MAX_USERS = 2;
