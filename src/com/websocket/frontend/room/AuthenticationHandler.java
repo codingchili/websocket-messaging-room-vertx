@@ -19,7 +19,6 @@ public enum AuthenticationHandler {
                 params.handler.sendCommand(params.client, "Already authenticated, use /logout.");
             } else {
                 authenticate.getHeader().setActor(params.client.getId());
-                params.client.setUsername(authenticate.getUsername());
                 params.handler.sendBus(Configuration.NOTIFY(), authenticate);
             }
         }
@@ -33,7 +32,6 @@ public enum AuthenticationHandler {
             if (Authentication.VerifyToken(token)) {
                 params.client.setUsername(token.getUsername());
                 params.client.setAuthenticated(true);
-                params.handler.getClients().get(params.getAddress()).setAuthenticated(true);
                 params.handler.sendBus(params.getAddress(), new Token(true));
             } else
                 params.handler.sendBus(params.getAddress(), new Token(false));

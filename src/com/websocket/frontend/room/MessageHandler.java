@@ -28,7 +28,7 @@ enum MessageHandler {
             if (!join.getRoom().equals(params.client.getRoom()))
                 params.handler.joinRoom(params.client, new Room().setRoom(join.getRoom()));
             else {
-                params.handler.sendCommand(params.client, "Already inside room.");
+                params.handler.sendBus(params.client.getId(), new Room().setErrorInsideAlready(true));
             }
         }
     },
@@ -44,8 +44,14 @@ enum MessageHandler {
     HELP() {
         @Override
         public void invoke(Parameters params) {
-            params.handler.sendCommand(params.client,
-                    "[/join <room>, /authenticate <user> <pass>, /connect <host:port>, /topic <string>, /help, /servers]");
+            CommandList commands = new CommandList();
+            commands.add(new Command("/authenticate <username> <passwd>", ""));
+            commands.add(new Command("/join <room>", ""));
+            commands.add(new Command("/topic <topic>", ""));
+            commands.add(new Command("/help", ""));
+            commands.add(new Command("/servers", ""));
+
+            params.handler.sendBus(params.client.getId(), commands);
         }
     },
 

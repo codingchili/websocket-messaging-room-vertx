@@ -91,7 +91,8 @@ class ChatVerticle implements Verticle {
                             messageHandler.get(packet.getAction()).invoke(
                                     new Parameters(data.toString(), event, client, this));
                         else {
-                            sendAuthenticationRequired(client);
+                           // sendMessage(client, "Authentication Required.");
+                           // sendMessage(client, "/authenticate <user> <password>");
                         }
                     });
 
@@ -99,7 +100,8 @@ class ChatVerticle implements Verticle {
                         removeFromRoom(client.getRoom(), client);
                         removeClient(client);
                     });
-                    onClientConnect(client);
+                    addClient(client);
+                    sendRoomData(client, new Join(Configuration.SERVER_ROOM, Configuration.SERVER_TOPIC));
                 }
         ).listen(Configuration.LISTEN_PORT);
         System.out.println("Room running on port " + Configuration.LISTEN_PORT);
@@ -127,17 +129,17 @@ class ChatVerticle implements Verticle {
         if (rooms.containsKey(name)) {
 
             if (room.getCreated()) {
-                sendMessage(client, "Created room '" + name + "'.");
+                // todo  sendMessage(client, "Created room '" + name + "'.");
                 notifyRoomEvent(room.getRoom(), client.getUsername(), true);
             } else
                 sendBus(Configuration.NOTIFY(), new History(name, client.getId()));
 
-            sendMessage(client, "Room owner \'" + rooms.get(name).getOwner() + "\'.");
+            // todo sendMessage(client, "Room owner \'" + rooms.get(name).getOwner() + "\'.");
             sendRoomData(client, new Join(rooms.get(name).getSettings()));
             addToRoom(name, client);
         } else {
             sendBus(Configuration.NOTIFY(), new RoomEvent(name, RoomEvent.RoomStatus.POPULATED));
-            sendMessage(client, "Loading room..");
+            //todo  sendMessage(client, "Loading room..");
             sendBus(Configuration.NOTIFY(), new Room(name, "/topic <string>", client.getUsername(), client.getId()));
         }
     }
@@ -154,8 +156,8 @@ class ChatVerticle implements Verticle {
     }
 
     protected void notifyRoomEvent(String room, String username, Boolean join) {
-        Message message = new Message(username + " has " + (join ? "joined " : "left") + " the room.");
-        sendRoom(room, message);
+        // todo user.event! Message message = new Message(username + " has " + (join ? "joined " : "left") + " the room.");
+        // sendRoom(room, message);
     }
 
     /**
@@ -169,20 +171,6 @@ class ChatVerticle implements Verticle {
         sendBus(Configuration.NOTIFY(), new UserEvent(room, client.getUsername(), true));
     }
 
-    private void onClientConnect(ClientID client) {
-        addClient(client);
-        sendRoomData(client, new Join(Configuration.SERVER_ROOM, Configuration.SERVER_TOPIC));
-    }
-
-    private void sendMessage(ClientID client, String content) {
-        Message message = new Message(content);
-        sendBus(client.getId(), message);
-    }
-
-    private void sendAuthenticationRequired(ClientID client) {
-        sendMessage(client, "Authentication Required.");
-        sendMessage(client, "/authenticate <user> <password>");
-    }
 
     private void addClient(ClientID client) {
         clients.put(client.getId(), client);
@@ -210,7 +198,6 @@ class ChatVerticle implements Verticle {
             client.setRoom(null);
             notifyRoomEvent(room, client.getUsername(), false);
 
-            // unload the room if empty, triggers a reload on next join.
             if (rooms.get(room).getClients().isEmpty()) {
                 rooms.remove(room);
 
@@ -292,10 +279,10 @@ class ChatVerticle implements Verticle {
         if (room.getOwner().equals(client.getUsername())) {
             setRoomTopic(client.getRoom(), topic, true);
 
-            Message message = new Message()
-                    .setContent(client.getUsername() + " changed the topic to " + topic)
-                    .setRoom(roomName)
-                    .setCommand(true);
+            //Message message = new Message()
+            //        .setContent(client.getUsername() + " changed the topic to " + topic)
+            //        .setRoom(roomName)
+            // todo send TOPIC to clients        .setCommand(true);
 
             sendRoom(room.getRoom(), message);
             sendBus(Configuration.NOTIFY(), message);
@@ -303,6 +290,7 @@ class ChatVerticle implements Verticle {
             sendCommand(
                     client,
                     "Not authorized, requires owner '" + room.getOwner() + "'.");
+            // todo send authenticate:false
         }
     }
 }

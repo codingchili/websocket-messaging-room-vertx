@@ -32,8 +32,10 @@ enum EventHandler {
 
             authenticate.getHeader().setActor(null);
 
+            ClientID client = event.handler.getClients().get(event.actor);
+            client.setUsername(authenticate.getUsername());
+            client.setAuthenticated(authenticate.isAuthenticated());
             event.handler.sendBus(event.actor, authenticate);
-            event.handler.getClients().get(event.actor).setAuthenticated(authenticate.isAuthenticated());
         }
     },
 
@@ -72,12 +74,7 @@ enum EventHandler {
         @Override
         public void invoke(Event event) {
             ServerList servers = (ServerList) Serializer.unpack(event.data, ServerList.class);
-
-            for (Server server : servers.getList()) {
-                event.handler.sendCommand(event.handler.getClient(event.actor),
-                        server.getIp() + ":" + server.getPort() + " - '" + server.getName()
-                                + "', State = " + (server.getFull() ? "FULL" : "AVAILABLE") + ".");
-            }
+            event.handler.sendBus(event.handler.getClient(event.actor).getId(), servers);
         }
     };
 

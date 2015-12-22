@@ -15,9 +15,11 @@ public class Room {
     private Header header;
     private String username;
     private Boolean created = false;
+    private Boolean errorInsideAlready;
 
     public Room() {
     }
+
 
     public Room(String room, String topic) {
         this(room, topic, null, null);
@@ -36,6 +38,15 @@ public class Room {
 
     public Room setOwner(String owner) {
         this.owner = owner;
+        return this;
+    }
+
+    public Boolean getErrorInsideAlready() {
+        return errorInsideAlready;
+    }
+
+    public Room setErrorInsideAlready(Boolean errorInsideAlready) {
+        this.errorInsideAlready = errorInsideAlready;
         return this;
     }
 
