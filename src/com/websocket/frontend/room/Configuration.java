@@ -13,6 +13,10 @@ public class Configuration {
     public final static String SERVER_TOPIC = "Authentication Required";
     public final static Integer LISTEN_PORT = 4035;
 
+    public static final int LOGGER_PORT = 5454;
+    public static final String BUS_LOGGER = "logging.upload";
+    public static final int LOG_INTERVAL = 1000;
+
     // maximum number of users before the server emits a FULL message.
     public static final Integer LOAD_MAX_USERS = 2;
 

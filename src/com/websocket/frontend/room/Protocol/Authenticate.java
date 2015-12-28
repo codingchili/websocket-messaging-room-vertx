@@ -72,8 +72,9 @@ public class Authenticate {
         return authenticated;
     }
 
-    public void setAuthenticated(Boolean authenticated) {
+    public Authenticate setAuthenticated(Boolean authenticated) {
         this.authenticated = authenticated;
+        return null;
     }
 
     public Boolean isCreated() {

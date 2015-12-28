@@ -64,6 +64,7 @@ class ChatVerticle implements Verticle {
     public void start(Future<Void> startFuture) throws Exception {
         startServer();
         startEventListener();
+        startUserCountLog();
     }
 
     @Override
@@ -90,10 +91,8 @@ class ChatVerticle implements Verticle {
                         else if (client.isAuthenticated())
                             messageHandler.get(packet.getAction()).invoke(
                                     new Parameters(data.toString(), event, client, this));
-                        else {
-                           // sendMessage(client, "Authentication Required.");
-                           // sendMessage(client, "/authenticate <user> <password>");
-                        }
+                        else
+                            sendAuthenticationFailed(client);
                     });
 
                     event.closeHandler(close -> {
@@ -107,11 +106,20 @@ class ChatVerticle implements Verticle {
         System.out.println("Room running on port " + Configuration.LISTEN_PORT);
     }
 
+    private void sendAuthenticationFailed(ClientID client) {
+        Authenticate authenticate = new Authenticate().setAuthenticated(false);
+        sendBus(client.getId(), authenticate);
+    }
+
     private void startEventListener() {
         vertx.eventBus().consumer(Configuration.EVENT(), handler -> {
             Packet packet = (Packet) Serializer.unpack(handler.body().toString(), Packet.class);
             eventHandler.get(packet.getAction()).invoke(new Event(handler.body().toString(), this));
         });
+    }
+
+    private void startUserCountLog() {
+        vertx.setPeriodic(Configuration.LOG_INTERVAL, event -> sendBus(Configuration.BUS_LOGGER, new LogUserCount(clients.size())));
     }
 
     /**
@@ -279,9 +287,10 @@ class ChatVerticle implements Verticle {
         if (room.getOwner().equals(client.getUsername())) {
             setRoomTopic(client.getRoom(), topic, true);
 
-            //Message message = new Message()
-            //        .setContent(client.getUsername() + " changed the topic to " + topic)
-            //        .setRoom(roomName)
+            Message message = new Message()
+                    .setContent(client.getUsername() + " changed the topic to " + topic)
+                    .setRoom(roomName)
+                    .setCommand(true);
             // todo send TOPIC to clients        .setCommand(true);
 
             sendRoom(room.getRoom(), message);

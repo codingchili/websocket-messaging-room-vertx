@@ -6,16 +6,12 @@ import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 
 /**
- * Created by Robin on 2015-12-16.
+ * Created by Robin on 2015-12-26.
  * <p>
- * Communicates with the client through a set of websockets.
+ * Uploads messages to the logging service.
  */
-public class Launcher implements Verticle {
+class Logger implements Verticle {
     private Vertx vertx;
-
-    public static void main(String[] args) {
-        org.apache.log4j.BasicConfigurator.configure();
-    }
 
     @Override
     public Vertx getVertx() {
@@ -27,14 +23,15 @@ public class Launcher implements Verticle {
         this.vertx = vertx;
     }
 
-    /**
-     * Instantiates required verticle components for the ChatServer.
-     */
     @Override
     public void start(Future<Void> startFuture) throws Exception {
-        vertx.deployVerticle(new ChatVerticle());
-        vertx.deployVerticle(new EventVerticle());
-        vertx.deployVerticle(new Logger());
+        vertx.createHttpClient().websocket(Configuration.LOGGER_PORT, "localhost", "/", event -> {
+
+            vertx.eventBus().consumer(Configuration.BUS_LOGGER, data -> {
+                vertx.eventBus().send(event.textHandlerID(), data.body().toString());
+            });
+
+        });
     }
 
     @Override

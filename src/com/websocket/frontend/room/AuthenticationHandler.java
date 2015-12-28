@@ -9,7 +9,7 @@ import com.websocket.frontend.room.Protocol.Token;
  * <p>
  * Handles user authentication.
  */
-public enum AuthenticationHandler {
+enum AuthenticationHandler {
     AUTHENTICATE() {
         @Override
         public void invoke(Parameters params) {
