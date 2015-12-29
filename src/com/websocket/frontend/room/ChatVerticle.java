@@ -82,7 +82,6 @@ class ChatVerticle implements Verticle {
 
                     event.handler(data -> {
                         Packet packet = (Packet) (Serializer.unpack(data.toString(), Packet.class));
-                        System.out.println(data.toString());
 
                         if (authenticationHandler.get(packet.getAction()) != null)
                             authenticationHandler.get(packet.getAction()).invoke(
