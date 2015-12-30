@@ -12,7 +12,7 @@ enum EventHandler {
         @Override
         public void invoke(Event event) {
             Message message = (Message) Serializer.unpack(event.data, Message.class);
-            event.handler.sendRoom(message.getRoom(), message);
+            event.handler.messageRoom(message.getRoom(), message);
         }
     },
 
@@ -20,6 +20,7 @@ enum EventHandler {
         @Override
         public void invoke(Event event) {
             Room room = (Room) Serializer.unpack(event.data, Room.class);
+
             event.handler.getRooms().put(room.getRoom(), new ChatRoom(room));
             event.handler.joinRoom(event.handler.getClient(event.actor), room);
         }
@@ -43,22 +44,7 @@ enum EventHandler {
         @Override
         public void invoke(Event event) {
             UserEvent userEvent = (UserEvent) Serializer.unpack(event.data, UserEvent.class);
-
-            event.handler.notifyRoomEvent(userEvent.getRoom(), userEvent.getUsername(), userEvent.getJoin());
-        }
-    },
-
-    HISTORY() {
-        @Override
-        public void invoke(Event event) {
-            History history = (History) Serializer.unpack(event.data, History.class);
-
-            for (Message message : history.getList()) {
-                event.handler.sendBus(event.actor, message.resetHeader());
-            }
-
-            event.handler.notifyRoomLoaded(history.getRoom(),
-                    event.handler.getClient(event.actor));
+            event.handler.messageRoom(userEvent.getRoom(), userEvent);
         }
     },
 
@@ -66,7 +52,7 @@ enum EventHandler {
         @Override
         public void invoke(Event event) {
             Topic topic = (Topic) Serializer.unpack(event.data, Topic.class);
-            event.handler.setRoomTopic(topic.getRoom(), topic.getTopic(), false);
+            event.handler.setRoomTopic(topic, false);
         }
     },
 

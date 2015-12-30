@@ -16,6 +16,7 @@ public class Authenticate {
     private Boolean created = false;
 
     public Authenticate() {
+        header = new Header(ACTION);
     }
 
     public Authenticate(String username, String password) {
@@ -74,7 +75,7 @@ public class Authenticate {
 
     public Authenticate setAuthenticated(Boolean authenticated) {
         this.authenticated = authenticated;
-        return null;
+        return this;
     }
 
     public Boolean isCreated() {

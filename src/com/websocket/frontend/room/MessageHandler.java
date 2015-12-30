@@ -15,8 +15,8 @@ enum MessageHandler {
             message.setSender(params.client.getUsername());
             message.setRoom(params.client.getRoom());
 
-            params.handler.sendRoom(params.client.getRoom(), message);
-            params.handler.sendBus(Configuration.NOTIFY(), message);
+            params.handler.messageRoom(params.client.getRoom(), message);
+            params.handler.sendBus(Configuration.UPSTREAM, message);
         }
     },
 
@@ -37,7 +37,7 @@ enum MessageHandler {
         @Override
         public void invoke(Parameters params) {
             Topic topic = (Topic) Serializer.unpack(params.data, Topic.class);
-            params.handler.trySetTopic(params.client.getRoom(), topic.getTopic(), params.client);
+            params.handler.trySetTopic(topic.setRoom(params.client.getRoom()), params.client);
         }
     },
 
@@ -58,7 +58,7 @@ enum MessageHandler {
     SERVERS() {
         @Override
         public void invoke(Parameters params) {
-            params.handler.sendBus(Configuration.NOTIFY(), new ServerList(params.client.getId()));
+            params.handler.sendBus(Configuration.UPSTREAM, new ServerList(params.client.getId()));
         }
     };
 

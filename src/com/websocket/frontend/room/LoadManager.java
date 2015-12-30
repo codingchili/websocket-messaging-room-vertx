@@ -28,12 +28,12 @@ class LoadManager {
      */
     public void manage(Integer users) {
         if (Configuration.LOAD_MAX_USERS <= users && !full) {
-            sendBus(Configuration.NOTIFY(), new ServerEvent(ServerEvent.ServerStatus.FULL));
+            sendBus(Configuration.UPSTREAM, new ServerEvent(ServerEvent.ServerStatus.FULL));
             full = true;
         }
 
         if (users <= Configuration.LOAD_MAX_USERS - Configuration.LOAD_DELTA_BUFFER && full) {
-            sendBus(Configuration.NOTIFY(), new ServerEvent(ServerEvent.ServerStatus.READY));
+            sendBus(Configuration.UPSTREAM, new ServerEvent(ServerEvent.ServerStatus.READY));
             full = false;
         }
     }

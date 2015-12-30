@@ -1,5 +1,6 @@
 package com.websocket.frontend.room;
 
+import com.websocket.frontend.room.Protocol.Message;
 import com.websocket.frontend.room.Protocol.Room;
 
 import java.util.HashMap;
@@ -15,6 +16,7 @@ class ChatRoom {
 
     public ChatRoom(Room room) {
         this(room.getRoom(), room.getTopic(), room.getOwner());
+        this.settings.setHistory(room.getHistory());
     }
 
     public ChatRoom(String name, String topic, String username) {
@@ -49,5 +51,12 @@ class ChatRoom {
 
     public String getOwner() {
         return settings.getOwner();
+    }
+
+    public void addHistory(Message message) {
+        if (settings.getHistory().size() >= Configuration.MAX_HISTORY)
+            settings.getHistory().remove(0);
+
+        settings.getHistory().add(message);
     }
 }

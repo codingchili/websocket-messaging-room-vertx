@@ -10,6 +10,7 @@ public class Topic {
     private Header header;
     private String topic;
     private String room;
+    private Boolean rejected;
 
     public Topic() {
         this.header = new Header(ACTION);
@@ -46,7 +47,17 @@ public class Topic {
         return room;
     }
 
-    public void setRoom(String room) {
+    public Topic setRoom(String room) {
         this.room = room;
+        return this;
+    }
+
+    public Boolean getRejected() {
+        return rejected;
+    }
+
+    public Topic setRejected(Boolean rejected) {
+        this.rejected = rejected;
+        return this;
     }
 }

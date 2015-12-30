@@ -15,11 +15,9 @@ enum AuthenticationHandler {
         public void invoke(Parameters params) {
             Authenticate authenticate = (Authenticate) Serializer.unpack(params.data, Authenticate.class);
 
-            if (params.client.isAuthenticated()) {
-                params.handler.sendCommand(params.client, "Already authenticated, use /logout.");
-            } else {
+            if (!params.client.isAuthenticated()) {
                 authenticate.getHeader().setActor(params.client.getId());
-                params.handler.sendBus(Configuration.NOTIFY(), authenticate);
+                params.handler.sendBus(Configuration.UPSTREAM, authenticate);
             }
         }
     },

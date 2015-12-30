@@ -41,11 +41,11 @@ class EventVerticle implements Verticle {
 
             // listen for events from the backend connector service.
             event.handler(data -> {
-                vertx.eventBus().send(Configuration.EVENT(), data);
+                vertx.eventBus().send(Configuration.DOWNSTREAM, data);
             });
 
             // forward emitted events onto the connector.
-            vertx.eventBus().consumer(Configuration.NOTIFY(), handler -> {
+            vertx.eventBus().consumer(Configuration.UPSTREAM, handler -> {
                 vertx.eventBus().send(event.textHandlerID(), handler.body().toString());
             });
 

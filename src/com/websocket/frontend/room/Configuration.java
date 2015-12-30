@@ -20,16 +20,14 @@ public class Configuration {
     public static final int LOG_INTERVAL = 1000;
 
     // maximum number of users before the server emits a FULL message.
-    public static final Integer LOAD_MAX_USERS = 250;
+    public static final Integer LOAD_MAX_USERS = 40;
 
     // the number of users which has too leave before advertising READY.
-    public static final Integer LOAD_DELTA_BUFFER = 100;
+    public static final Integer LOAD_DELTA_BUFFER = 30;
 
-    public static String NOTIFY() {
-        return "notify";
-    }
+    public static final String UPSTREAM = "notify";
+    public static final String DOWNSTREAM = "event";
 
-    public static String EVENT() {
-        return "event";
-    }
+    // configuration for rooms.
+    public static final int MAX_HISTORY = 50;
 }
